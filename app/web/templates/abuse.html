@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status, copy, csrf_input %}
+{% block title %}Abuse{% endblock %}
+{% block content %}
+<h1>Abuse reports</h1>
+<p class="muted">Servers are locked automatically when the provider locks them or an abuse e-mail mentions their IP (configure ABUSE_IMAP_* in the environment).
+Locked servers cannot be managed by the user and are powered off if "abuse_auto_poweroff" is on.</p>
+<div class="toolbar tabs">
+  {% for key in ['open','resolved','dismissed','all'] %}<a href="?status={{ key }}" class="{{ 'active' if status == key }}">{{ key }}</a>{% endfor %}
+</div>
+{% for r in reports %}
+<div class="card" style="margin-bottom:10px">
+  <div class="toolbar" style="justify-content:space-between;margin:0">
+    <div><b>#{{ r.id }}</b> {{ status(r.status) }} <span class="badge">{{ r.source }}</span> {{ r.created_at|dt }} ·
+      {% if r.server %}<a class="link" href="/servers/{{ r.server.id }}">{{ r.server.name }}</a> <span class="mono">{{ r.ip }}</span>{{ copy(r.ip) }}
+      {% if r.server.user %}· <a class="link" href="/users/{{ r.server.user.id }}">{{ r.server.user.display }}</a>{% endif %}
+      {% if r.server.locked %}<span class="badge err">locked</span>{% endif %}{% else %}<span class="muted">no server</span>{% endif %}</div>
+    {% if r.status == 'open' %}
+    <form class="inline" method="post" action="/abuse/{{ r.id }}">{{ csrf_input(csrf) }}
+      <input type="text" name="note" placeholder="Admin note">
+      <button name="action" value="unlock" class="primary">Resolve &amp; unlock</button>
+      <button name="action" value="resolve">Resolve (keep locked)</button>
+      <button name="action" value="dismiss">Dismiss</button>
+    </form>
+    {% else %}<span class="muted">{{ r.admin_note or '' }} {{ r.resolved_at|dt }}</span>{% endif %}
+  </div>
+  <details><summary>{{ r.subject or '(no subject)' }}</summary><pre class="mono" style="white-space:pre-wrap">{{ r.body or '' }}</pre></details>
+</div>
+{% else %}<p class="muted">No reports.</p>{% endfor %}
+{% endblock %}

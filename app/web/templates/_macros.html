@@ -1,0 +1,16 @@
+{% macro copy(value) -%}
+{% if value %}<button type="button" class="copy" title="Copy" data-copy="{{ value }}">⧉</button>{% endif %}
+{%- endmacro %}
+
+{% macro csrf_input(csrf) -%}<input type="hidden" name="csrf" value="{{ csrf }}">{%- endmacro %}
+
+{% macro status(s, locked=False) -%}
+{% set cls = {'active':'ok','pooled':'ok','approved':'ok','done':'ok','resolved':'ok','awaiting_confirm':'warn','pending':'warn','creating':'warn','checking':'warn','running':'warn','suspended':'err','failed':'err','deleting':'warn','rejected':'err','open':'err'}.get(s, '') %}
+<span class="badge {{ cls }}">{{ s }}</span>{% if locked %} <span class="badge err">locked</span>{% endif %}
+{%- endmacro %}
+
+{% macro power(server) -%}
+{% if server.status in ('active','suspended','pooled','awaiting_confirm') %}
+<span class="badge {{ 'ok' if server.power_status == 'running' else 'err' }}">{{ 'online' if server.power_status == 'running' else server.power_status }}</span>
+{% endif %}
+{%- endmacro %}

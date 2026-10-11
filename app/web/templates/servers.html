@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status, power, copy %}
+{% block title %}Servers{% endblock %}
+{% block content %}
+<h1>Servers</h1>
+<div class="toolbar">
+  <span class="tabs">
+  {% for key, label in [('live','Live'),('awaiting_confirm','Awaiting'),('suspended','Suspended'),('locked','Locked'),('pooled','Pool'),('failed','Failed'),('deleted','Deleted'),('all','All')] %}
+    <a href="?status={{ key }}" class="{{ 'active' if status == key }}">{{ label }}</a>
+  {% endfor %}
+  </span>
+  <form method="get" class="inline"><input type="hidden" name="status" value="{{ status }}"><input type="text" name="q" value="{{ q }}" placeholder="name or IP"><button>Search</button></form>
+</div>
+<div class="table-wrap"><table>
+<tr><th>Server</th><th>User</th><th>Plan</th><th>IP</th><th>Status</th><th class="num">Price (IRR)</th><th>Next charge</th><th>Created</th></tr>
+{% for s in servers %}
+<tr>
+  <td><a class="link" href="/servers/{{ s.id }}">{{ s.name }}</a></td>
+  <td>{% if s.user %}<a class="link" href="/users/{{ s.user.id }}">{{ s.user.display }}</a>{% else %}<span class="muted">pool</span>{% endif %}</td>
+  <td>{{ s.plan.name }} · {{ s.location.code }}</td>
+  <td class="mono">{{ s.ipv4 or '—' }}{{ copy(s.ipv4) }}</td>
+  <td>{{ status(s.status, s.locked) }} {{ power(s) }}</td>
+  <td class="num">{{ (s.hourly_price if s.billing_mode == 'h' else s.monthly_price)|money }} / {{ 'h' if s.billing_mode == 'h' else 'mo' }}</td>
+  <td>{{ s.next_charge_at|dt }}</td>
+  <td>{{ s.created_at|dt }}</td>
+</tr>
+{% else %}<tr><td colspan="8" class="muted">No servers.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

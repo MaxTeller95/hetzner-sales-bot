@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status, csrf_input %}
+{% block title %}Top-ups{% endblock %}
+{% block content %}
+<h1>Top-up requests</h1>
+<div class="toolbar tabs">
+  {% for key in ['pending','approved','rejected','all'] %}<a href="?status={{ key }}" class="{{ 'active' if status == key }}">{{ key }}</a>{% endfor %}
+</div>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>User</th><th class="num">Amount (IRR)</th><th>Receipt</th><th>Status</th><th>Created</th><th>Action</th></tr>
+{% for r in reqs %}
+<tr>
+  <td>{{ r.id }}</td>
+  <td><a class="link" href="/users/{{ r.user.id }}">{{ r.user.display }}</a></td>
+  <td class="num">{{ r.amount|money }}</td>
+  <td>{% if r.receipt_file_id %}<details><summary>View</summary><a href="/topups/{{ r.id }}/receipt" target="_blank"><img src="/topups/{{ r.id }}/receipt" alt="receipt" style="max-width:320px;max-height:420px;margin-top:6px;border-radius:6px"></a></details>{% else %}—{% endif %}</td>
+  <td>{{ status(r.status) }}{% if r.reviewed_by %}<div class="muted" style="font-size:12px">{{ r.reviewed_by }} · {{ r.reviewed_at|dt }}</div>{% endif %}</td>
+  <td>{{ r.created_at|dt }}</td>
+  <td>
+    {% if r.status == 'pending' %}
+    <form class="inline" method="post" action="/topups/{{ r.id }}/approve" data-confirm="Approve and credit this wallet?">{{ csrf_input(csrf) }}
+      <input type="text" name="amount" placeholder="{{ r.amount }}" style="width:120px" title="Override amount (optional)"><button class="primary">Approve</button></form>
+    <form class="inline" method="post" action="/topups/{{ r.id }}/reject" data-confirm="Reject this request?">{{ csrf_input(csrf) }}
+      <input type="text" name="note" placeholder="Reason (sent to user)" style="width:160px"><button class="danger">Reject</button></form>
+    {% endif %}
+  </td>
+</tr>
+{% else %}<tr><td colspan="7" class="muted">Nothing here.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

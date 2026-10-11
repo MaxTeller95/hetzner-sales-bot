@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status, csrf_input %}
+{% block title %}Jobs{% endblock %}
+{% block content %}
+<h1>Background jobs</h1>
+<div class="toolbar tabs">
+  {% for key in ['all','pending','running','failed','done'] %}<a href="?status={{ key }}" class="{{ 'active' if status == key }}">{{ key }}</a>{% endfor %}
+</div>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Kind</th><th>Target</th><th>Status</th><th>Attempts</th><th>Run at</th><th>Error</th><th></th></tr>
+{% for j in jobs %}
+<tr><td>{{ j.id }}</td><td>{{ j.kind }} <span class="muted">{{ j.payload or '' }}</span></td>
+<td>{% if j.server_id %}<a class="link" href="/servers/{{ j.server_id }}">server {{ j.server_id }}</a>{% endif %}{% if j.ip_id %} ip {{ j.ip_id }}{% endif %}</td>
+<td>{{ status(j.status) }}</td><td>{{ j.attempts }}/{{ j.max_attempts }}</td><td>{{ j.run_at|dt }}</td>
+<td>{% if j.last_error %}<details><summary class="muted" style="font-weight:400">error</summary><pre class="mono" style="white-space:pre-wrap;max-width:480px">{{ j.last_error }}</pre></details>{% endif %}</td>
+<td>{% if j.status == 'failed' %}<form method="post" action="/jobs/{{ j.id }}/retry">{{ csrf_input(csrf) }}<button>Retry</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="8" class="muted">No jobs.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

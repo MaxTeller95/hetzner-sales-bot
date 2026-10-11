@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_input %}
+{% block title %}Locations &amp; OS{% endblock %}
+{% block content %}
+<h1>Locations &amp; OS images</h1>
+<h2>Locations</h2>
+<div class="table-wrap"><table>
+<tr><th>Provider</th><th>Code</th><th>Country</th><th class="num">IPv4 / h</th><th class="num">IPv4 / mo</th><th>Display name (Persian) · active · order</th></tr>
+{% for l in locations %}
+<tr><td>{{ l.provider.code }}</td><td class="mono">{{ l.code }}</td><td>{{ l.country }} {{ l.city or '' }}</td>
+<td class="num">{{ '%.4f'|format(l.ipv4_hourly) }} {{ l.currency }}</td><td class="num">{{ '%.2f'|format(l.ipv4_monthly) }}</td>
+<td><form class="inline" method="post" action="/locations/{{ l.id }}">{{ csrf_input(csrf) }}
+  <input type="text" name="name" value="{{ l.name }}" dir="auto" style="width:220px">
+  <label><input type="checkbox" name="is_active" value="1" {{ 'checked' if l.is_active }}> on</label>
+  <input type="number" name="sort_order" value="{{ l.sort_order }}" style="width:58px"><button>Save</button></form></td></tr>
+{% else %}<tr><td colspan="6" class="muted">Nothing synced yet.</td></tr>{% endfor %}
+</table></div>
+
+<h2>OS images</h2>
+<div class="table-wrap"><table>
+<tr><th>Code</th><th>Arch</th><th>Display name · active · order</th></tr>
+{% for i in images %}
+<tr><td class="mono">{{ i.code }}</td><td>{{ i.arch }}</td>
+<td><form class="inline" method="post" action="/images/{{ i.id }}">{{ csrf_input(csrf) }}
+  <input type="text" name="name" value="{{ i.name }}" style="width:220px">
+  <label><input type="checkbox" name="is_active" value="1" {{ 'checked' if i.is_active }}> on</label>
+  <input type="number" name="sort_order" value="{{ i.sort_order }}" style="width:58px"><button>Save</button></form></td></tr>
+{% else %}<tr><td colspan="3" class="muted">Nothing synced yet.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

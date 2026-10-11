@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_input %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<form method="post" action="/settings">{{ csrf_input(csrf) }}
+{% for group, defs in groups.items() %}
+<details class="card" {{ 'open' if loop.first }} style="margin-bottom:10px">
+  <summary>{{ group }}</summary>
+  <div style="display:grid;gap:12px;margin-top:12px">
+  {% for d in defs %}
+    <label style="display:grid;gap:4px">
+      <span><b>{{ d.label }}</b> <span class="muted mono" style="font-size:11px">{{ d.key }}</span>{% if d.help %}<br><span class="muted" style="font-size:12px">{{ d.help }}</span>{% endif %}</span>
+      {% if d.type.__name__ == 'bool' %}
+        <span><input type="checkbox" name="{{ d.key }}" value="1" {{ 'checked' if values[d.key] }}> enabled</span>
+      {% elif d.multiline %}
+        <textarea name="{{ d.key }}" dir="auto">{{ values[d.key] }}</textarea>
+      {% else %}
+        <input type="text" name="{{ d.key }}" value="{{ values[d.key] }}" dir="auto" style="max-width:520px">
+      {% endif %}
+    </label>
+  {% endfor %}
+  </div>
+</details>
+{% endfor %}
+<button class="primary" type="submit">Save settings</button>
+</form>
+{% endblock %}

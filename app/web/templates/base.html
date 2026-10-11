@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Admin{% endblock %} · Server Shop</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--text:#1d2330;--muted:#6b7280;--border:#e3e6eb;--accent:#d50c2d;--ok:#15803d;--warn:#b45309;--err:#b91c1c;--chip:#eef1f5}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1218;--panel:#171b23;--text:#e6e9ef;--muted:#9aa3b2;--border:#262c37;--chip:#212734}}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}
+a{color:inherit}a.link{color:var(--accent);text-decoration:none}a.link:hover{text-decoration:underline}
+.layout{display:flex;min-height:100vh}
+nav.side{width:210px;flex:none;background:var(--panel);border-right:1px solid var(--border);padding:16px 10px;position:sticky;top:0;height:100vh;overflow:auto}
+nav.side .brand{font-weight:700;padding:4px 10px 14px;font-size:15px}nav.side .brand span{color:var(--accent)}
+nav.side a{display:block;padding:7px 10px;border-radius:7px;text-decoration:none;color:var(--muted)}
+nav.side a:hover,nav.side a.active{background:var(--chip);color:var(--text)}
+nav.side form{margin-top:18px;padding:0 10px}
+main{flex:1;min-width:0;padding:22px 26px 60px}
+h1{font-size:20px;margin:0 0 16px}h2{font-size:15px;margin:22px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.card .label{color:var(--muted);font-size:12px}.card .value{font-size:20px;font-weight:650;margin-top:4px;font-variant-numeric:tabular-nums}
+.card .sub{color:var(--muted);font-size:12px;margin-top:2px}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+th{font-size:12px;color:var(--muted);font-weight:600;background:var(--chip)}tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.table-wrap{overflow-x:auto}
+.badge{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;background:var(--chip);white-space:nowrap}
+.badge.ok{background:#dcfce7;color:#166534}.badge.warn{background:#fef3c7;color:#92400e}.badge.err{background:#fee2e2;color:#991b1b}
+@media (prefers-color-scheme:dark){.badge.ok{background:#14532d;color:#bbf7d0}.badge.warn{background:#78350f;color:#fde68a}.badge.err{background:#7f1d1d;color:#fecaca}}
+input,select,textarea,button{font:inherit;color:inherit}
+input[type=text],input[type=number],input[type=password],select,textarea{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:6px 9px}
+textarea{width:100%;min-height:120px}
+button,.btn{background:var(--chip);border:1px solid var(--border);border-radius:7px;padding:6px 12px;cursor:pointer;text-decoration:none;display:inline-block}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}button.danger{color:var(--err)}
+button:hover{filter:brightness(.97)}
+form.inline{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.flash{padding:9px 12px;border-radius:8px;margin-bottom:12px;border:1px solid var(--border);background:var(--panel)}
+.flash.ok{border-color:#86efac}.flash.error{border-color:#fca5a5;color:var(--err)}
+.muted{color:var(--muted)}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.copy{border:0;background:none;padding:0 4px;cursor:pointer;color:var(--muted)}.copy:hover{color:var(--accent)}
+details{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin:6px 0}
+details summary{cursor:pointer;font-weight:600}
+.tabs a{padding:5px 11px;border-radius:99px;text-decoration:none;background:var(--chip);color:var(--muted)}.tabs a.active{background:var(--accent);color:#fff}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.layout{display:block}nav.side{width:auto;height:auto;position:static;display:flex;flex-wrap:wrap;gap:2px}.two{grid-template-columns:1fr}main{padding:16px}}
+</style>
+</head>
+<body>
+<div class="layout">
+  {% if admin %}
+  <nav class="side">
+    <div class="brand">Server<span>Shop</span> admin</div>
+    {% set p = request.url.path %}
+    <a href="/" class="{{ 'active' if p == '/' }}">Overview</a>
+    <a href="/topups" class="{{ 'active' if p.startswith('/topups') }}">Top-ups</a>
+    <a href="/users" class="{{ 'active' if p.startswith('/users') }}">Users</a>
+    <a href="/servers" class="{{ 'active' if p.startswith('/servers') }}">Servers</a>
+    <a href="/ips" class="{{ 'active' if p.startswith('/ips') }}">Reserve IPs</a>
+    <a href="/abuse" class="{{ 'active' if p.startswith('/abuse') }}">Abuse</a>
+    <a href="/plans" class="{{ 'active' if p.startswith('/plans') }}">Plans &amp; prices</a>
+    <a href="/pool" class="{{ 'active' if p.startswith('/pool') }}">Server pool</a>
+    <a href="/catalog" class="{{ 'active' if p.startswith('/catalog') }}">Locations &amp; OS</a>
+    <a href="/providers" class="{{ 'active' if p.startswith('/providers') }}">Providers</a>
+    <a href="/transactions" class="{{ 'active' if p.startswith('/transactions') }}">Transactions</a>
+    <a href="/jobs" class="{{ 'active' if p.startswith('/jobs') }}">Jobs</a>
+    <a href="/settings" class="{{ 'active' if p.startswith('/settings') }}">Settings</a>
+    <form method="post" action="/logout"><button type="submit">Log out</button></form>
+  </nav>
+  {% endif %}
+  <main>
+    {% for kind, msg in flashes %}<div class="flash {{ kind }}">{{ msg }}</div>{% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+<script>
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-copy]');
+  if (!b) return;
+  navigator.clipboard.writeText(b.dataset.copy).then(() => { const t = b.textContent; b.textContent = '✓'; setTimeout(() => b.textContent = t, 900); });
+});
+document.addEventListener('submit', e => {
+  const msg = e.target.dataset.confirm;
+  if (msg && !confirm(msg)) e.preventDefault();
+});
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status, power, copy %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<h1>Overview <span class="muted" style="font-size:12px;font-weight:400">live · updated <span id="gen">{{ st.generated_at }}</span></span></h1>
+{% if not st.exchange_rate_eur %}
+<div class="flash error">Exchange rate is not set — users cannot buy anything. <a class="link" href="/settings">Open settings</a></div>
+{% endif %}
+<div class="grid">
+  <div class="card"><div class="label">Active servers</div><div class="value" data-k="active_servers">{{ st.active_servers }}</div><div class="sub">pool: <span data-k="pooled_servers">{{ st.pooled_servers }}</span> · reserve IPs: <span data-k="reserve_ips">{{ st.reserve_ips }}</span></div></div>
+  <div class="card"><div class="label">Est. provider invoice / month</div><div class="value" data-k="provider_monthly_cost" data-fmt="cur">{% for c, v in st.provider_monthly_cost.items() %}{{ '%.2f'|format(v) }} {{ c }} {% else %}0{% endfor %}</div><div class="sub">now: <span data-k="provider_hourly_cost" data-fmt="cur4">{% for c, v in st.provider_hourly_cost.items() %}{{ '%.4f'|format(v) }} {{ c }}/h {% endfor %}</span></div></div>
+  <div class="card"><div class="label">Revenue run-rate / month (IRR)</div><div class="value" data-k="revenue_monthly" data-fmt="n">{{ st.revenue_monthly|money }}</div><div class="sub"><span data-k="revenue_hourly" data-fmt="n">{{ st.revenue_hourly|money }}</span> / hour</div></div>
+  <div class="card"><div class="label">Est. profit / month (IRR)</div><div class="value" data-k="profit_monthly_irr" data-fmt="n">{{ st.profit_monthly_irr|money if st.profit_monthly_irr is not none else '—' }}</div><div class="sub">cost ≈ <span data-k="provider_monthly_cost_irr" data-fmt="n">{{ st.provider_monthly_cost_irr|money if st.provider_monthly_cost_irr is not none else '—' }}</span> IRR</div></div>
+  <div class="card"><div class="label">Charged last 24h (IRR)</div><div class="value" data-k="charges_24h" data-fmt="n">{{ st.charges_24h|money }}</div><div class="sub">top-ups 30d: <span data-k="topups_30d" data-fmt="n">{{ st.topups_30d|money }}</span></div></div>
+  <div class="card"><div class="label">Wallet balances (IRR)</div><div class="value" data-k="wallet_total" data-fmt="n">{{ st.wallet_total|money }}</div><div class="sub"><span data-k="negative_wallets">{{ st.negative_wallets }}</span> negative · <span data-k="users">{{ st.users }}</span> users</div></div>
+  <a class="card" href="/topups" style="text-decoration:none"><div class="label">Pending top-ups</div><div class="value" data-k="pending_topups">{{ st.pending_topups }}</div><div class="sub">needs review</div></a>
+  <a class="card" href="/abuse" style="text-decoration:none"><div class="label">Open abuse reports</div><div class="value" data-k="open_abuse">{{ st.open_abuse }}</div><div class="sub">failed jobs 24h: <span data-k="failed_jobs_24h">{{ st.failed_jobs_24h }}</span> · queue: <span data-k="pending_jobs">{{ st.pending_jobs }}</span></div></a>
+</div>
+
+<h2>Latest orders</h2>
+<div class="table-wrap"><table>
+<tr><th>Server</th><th>User</th><th>Plan</th><th>IP</th><th>Status</th><th class="num">Price</th><th>Created</th></tr>
+{% for s in recent_servers %}
+<tr><td><a class="link" href="/servers/{{ s.id }}">{{ s.name }}</a></td><td>{% if s.user %}<a class="link" href="/users/{{ s.user.id }}">{{ s.user.display }}</a>{% endif %}</td>
+<td>{{ s.plan.name }} · {{ s.location.code }}</td><td class="mono">{{ s.ipv4 or '—' }}{{ copy(s.ipv4) }}</td><td>{{ status(s.status, s.locked) }} {{ power(s) }}</td>
+<td class="num">{{ (s.hourly_price if s.billing_mode == 'h' else s.monthly_price)|money }} / {{ 'h' if s.billing_mode == 'h' else 'mo' }}</td><td>{{ s.created_at|dt }}</td></tr>
+{% else %}<tr><td colspan="7" class="muted">No orders yet.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const fmt = (v, f) => {
+  if (v === null || v === undefined) return '—';
+  if (f === 'n') return Number(v).toLocaleString('en-US');
+  if (f === 'cur') return Object.entries(v).map(([c, x]) => x.toFixed(2) + ' ' + c).join(' ') || '0';
+  if (f === 'cur4') return Object.entries(v).map(([c, x]) => x.toFixed(4) + ' ' + c + '/h').join(' ') || '0';
+  return v;
+};
+async function refresh() {
+  try {
+    const r = await fetch('/api/stats', {credentials: 'same-origin'});
+    if (!r.ok) return;
+    const st = await r.json();
+    document.querySelectorAll('[data-k]').forEach(el => { el.textContent = fmt(st[el.dataset.k], el.dataset.fmt); });
+    document.getElementById('gen').textContent = st.generated_at;
+  } catch (e) {}
+}
+setInterval(refresh, 15000);
+</script>
+{% endblock %}

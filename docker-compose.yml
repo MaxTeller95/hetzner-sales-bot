@@ -1,0 +1,58 @@
+x-app: &app
+  build: .
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://hetzbot:${POSTGRES_PASSWORD:-hetzbot}@db:5432/hetzbot
+    REDIS_URL: redis://redis:6379/0
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+    migrate:
+      condition: service_completed_successfully
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: hetzbot
+      POSTGRES_USER: hetzbot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hetzbot}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hetzbot"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  migrate:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://hetzbot:${POSTGRES_PASSWORD:-hetzbot}@db:5432/hetzbot
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  bot:
+    <<: *app
+    command: ["python", "-m", "app.bot"]
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "app.worker"]
+
+  web:
+    <<: *app
+    command: ["uvicorn", "app.web.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    ports:
+      - "127.0.0.1:8000:8000"   # put a TLS reverse proxy (Caddy/nginx) in front; don't expose directly
+
+volumes:
+  pgdata:

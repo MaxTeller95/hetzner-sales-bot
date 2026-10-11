@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status, copy, csrf_input %}
+{% block title %}Server pool{% endblock %}
+{% block content %}
+<h1>Server pool</h1>
+<p class="muted">Pre-created servers for cheap/high-demand plans. A purchase of a pooled plan takes a pool server and reinstalls the chosen OS,
+so customers still get a server when the plan is sold out at the provider. Pool servers cost you money while they wait.
+Set automatic targets per plan on <a class="link" href="/plans">Plans</a> ("Pool" column); the worker tops the pool up every 10 minutes.</p>
+
+<div class="two">
+  <form class="card" method="post" action="/pool/create" style="display:grid;gap:8px">{{ csrf_input(csrf) }}
+    <h2 style="margin-top:0">Create pool servers now</h2>
+    <select name="plan_id">{% for p in plans %}<option value="{{ p.id }}">{{ p.name }} · {{ p.location.code }} · {{ '%.4f'|format(p.base_hourly) }} {{ p.currency }}/h</option>{% endfor %}</select>
+    <input type="number" name="count" value="1" min="1" max="20">
+    <button class="primary">Create</button>
+  </form>
+  <div class="card">
+    <h2 style="margin-top:0">Automatic targets</h2>
+    {% for p in targets %}<div>{{ p.name }} · {{ p.location.code }} — keep <b>{{ p.pool_target }}</b></div>{% else %}<div class="muted">None set.</div>{% endfor %}
+  </div>
+</div>
+
+<h2>Pool servers</h2>
+<div class="table-wrap"><table>
+<tr><th>Server</th><th>Plan</th><th>IP</th><th>Status</th><th>Created</th><th>Note</th></tr>
+{% for s in pooled %}
+<tr><td><a class="link" href="/servers/{{ s.id }}">{{ s.name }}</a></td><td>{{ s.plan.name }} · {{ s.location.code }}</td>
+<td class="mono">{{ s.ipv4 or '—' }}{{ copy(s.ipv4) }}</td><td>{{ status(s.status) }}</td><td>{{ s.created_at|dt }}</td><td class="muted">{{ s.failure_reason or '' }}</td></tr>
+{% else %}<tr><td colspan="6" class="muted">Pool is empty.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

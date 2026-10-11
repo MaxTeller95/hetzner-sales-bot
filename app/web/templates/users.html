@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<h1>Users</h1>
+<form class="toolbar" method="get">
+  <input type="text" name="q" value="{{ q }}" placeholder="username, name or Telegram id">
+  <button type="submit">Search</button>
+</form>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>User</th><th>Telegram id</th><th class="num">Balance (IRR)</th><th class="num">Servers</th><th>ToS</th><th>Joined</th><th></th></tr>
+{% for u in users %}
+<tr>
+  <td>{{ u.id }}</td>
+  <td><a class="link" href="/users/{{ u.id }}">{{ u.display }}</a>{% if u.is_banned %} <span class="badge err">banned</span>{% endif %}</td>
+  <td class="mono">{{ u.telegram_id }}</td>
+  <td class="num" style="{{ 'color:var(--err)' if u.wallet and u.wallet.balance < 0 }}">{{ (u.wallet.balance if u.wallet else 0)|money }}</td>
+  <td class="num">{{ counts.get(u.id, 0) }}</td>
+  <td>{{ '✓' if u.tos_accepted_at else '—' }}</td>
+  <td>{{ u.created_at|dt }}</td>
+  <td><a class="btn" href="/users/{{ u.id }}">Open</a></td>
+</tr>
+{% else %}<tr><td colspan="8" class="muted">No users found.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_input %}
+{% block title %}Plans{% endblock %}
+{% block content %}
+<h1>Plans &amp; prices</h1>
+{% if not pricing_ok %}<div class="flash error">Set the exchange rate in <a class="link" href="/settings">Settings</a> to see customer prices.</div>{% endif %}
+<p class="muted">Customer hourly price = (base hourly + IPv4 hourly) × exchange rate × (1 + margin). Monthly = hourly × 720 × (1 − monthly discount).
+Leave "Override base" empty to use the provider price. "Pool" keeps N servers pre-created for instant delivery.</p>
+<div class="toolbar">
+  <form method="get" class="inline">
+    <select name="location_id" onchange="this.form.submit()">
+      <option value="0">All locations</option>
+      {% for l in locations %}<option value="{{ l.id }}" {{ 'selected' if l.id == location_id }}>{{ l.provider.code }} · {{ l.code }} — {{ l.name }}</option>{% endfor %}
+    </select>
+  </form>
+  <form method="post" action="/plans-bulk" class="inline">{{ csrf_input(csrf) }}<input type="hidden" name="location_id" value="{{ location_id }}"><input type="hidden" name="active" value="1"><button>Enable all shown</button></form>
+  <form method="post" action="/plans-bulk" class="inline">{{ csrf_input(csrf) }}<input type="hidden" name="location_id" value="{{ location_id }}"><input type="hidden" name="active" value="0"><button>Disable all shown</button></form>
+</div>
+<div class="table-wrap"><table>
+<tr><th>Plan</th><th>Location</th><th>Specs</th><th class="num">Base / h</th><th class="num">Base / mo</th><th class="num">Sell / h (IRR)</th><th class="num">Sell / mo (IRR)</th><th>Stock</th><th>Settings</th></tr>
+{% for plan, q in rows %}
+<tr>
+  <td><b>{{ plan.name }}</b> <span class="muted">{{ plan.cpu_type }} · {{ plan.arch }}</span></td>
+  <td>{{ plan.location.code }}</td>
+  <td style="white-space:nowrap">{{ plan.specs }}{% if plan.traffic_tb %}<br><span class="muted">{{ plan.traffic_tb }} TB</span>{% endif %}</td>
+  <td class="num">{{ '%.4f'|format(plan.base_hourly) }} {{ plan.currency }}</td>
+  <td class="num">{{ '%.2f'|format(plan.base_monthly) }}</td>
+  <td class="num">{{ q.hourly|money if q else '—' }}</td>
+  <td class="num">{{ q.monthly|money if q else '—' }}</td>
+  <td>{% if plan.is_available %}<span class="badge ok">available</span>{% else %}<span class="badge err">sold out</span>{% endif %}</td>
+  <td style="min-width:420px">
+    <form class="inline" method="post" action="/plans/{{ plan.id }}" style="flex-wrap:nowrap">{{ csrf_input(csrf) }}
+      <label title="Visible to customers"><input type="checkbox" name="is_active" value="1" {{ 'checked' if plan.is_active }}> on</label>
+      <input type="text" name="override_hourly" value="{{ plan.override_hourly if plan.override_hourly is not none else '' }}" placeholder="Override base" style="width:100px">
+      <input type="number" name="pool_target" value="{{ plan.pool_target }}" min="0" max="50" style="width:64px" title="Pool target">
+      <input type="number" name="sort_order" value="{{ plan.sort_order }}" style="width:58px" title="Sort order">
+      <button>Save</button>
+    </form>
+  </td>
+</tr>
+{% else %}<tr><td colspan="9" class="muted">No plans. Add a provider and press Sync on the <a class="link" href="/providers">Providers</a> page.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

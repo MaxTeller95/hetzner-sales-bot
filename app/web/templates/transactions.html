@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+<h1>Transactions</h1>
+<div class="toolbar tabs">
+  {% for key in ['all','topup','charge','refund','adjust'] %}<a href="?kind={{ key }}" class="{{ 'active' if kind == key }}">{{ key }}</a>{% endfor %}
+</div>
+<div class="table-wrap"><table>
+<tr><th>When</th><th>User</th><th>Kind</th><th>Description</th><th class="num">Amount (IRR)</th><th class="num">Balance after</th></tr>
+{% for t in txs %}
+<tr><td>{{ t.created_at|dt }}</td><td>{% set u = users.get(t.user_id) %}{% if u %}<a class="link" href="/users/{{ u.id }}">{{ u.display }}</a>{% endif %}</td>
+<td><span class="badge">{{ t.kind }}</span></td><td dir="auto">{{ t.description }}</td>
+<td class="num" style="color:{{ 'var(--ok)' if t.amount > 0 else 'var(--err)' }}">{{ t.amount|money }}</td><td class="num">{{ t.balance_after|money }}</td></tr>
+{% else %}<tr><td colspan="6" class="muted">No transactions.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

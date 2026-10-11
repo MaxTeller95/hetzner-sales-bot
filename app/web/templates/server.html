@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status, power, copy, csrf_input %}
+{% block title %}{{ server.name }}{% endblock %}
+{% block content %}
+<h1>{{ server.name }} {{ status(server.status, server.locked) }} {{ power(server) }}</h1>
+{% if server.locked %}<div class="flash error">🔒 {{ server.lock_reason }}</div>{% endif %}
+
+<div class="two">
+  <div class="card">
+    <table style="border:0">
+      <tr><td class="muted">Owner</td><td>{% if server.user %}<a class="link" href="/users/{{ server.user.id }}">{{ server.user.display }}</a>{% else %}pool{% endif %}</td></tr>
+      <tr><td class="muted">Provider</td><td>{{ server.provider.code }} · id <span class="mono">{{ server.provider_server_id or '—' }}</span>{{ copy(server.provider_server_id) }}</td></tr>
+      <tr><td class="muted">Plan</td><td>{{ server.plan.name }} ({{ server.plan.specs }}) · {{ server.location.code }} {{ server.datacenter or '' }}</td></tr>
+      <tr><td class="muted">IPv4</td><td class="mono">{{ server.ipv4 or '—' }}{{ copy(server.ipv4) }}</td></tr>
+      <tr><td class="muted">IPv6</td><td class="mono">{{ server.ipv6 or '—' }}{{ copy(server.ipv6) }}</td></tr>
+      <tr><td class="muted">OS</td><td>{{ server.image.name if server.image else '—' }}</td></tr>
+      <tr><td class="muted">Login</td><td class="mono">{{ server.username }} / {% if password %}<span style="filter:blur(4px)" onmouseover="this.style.filter=''" onmouseout="this.style.filter='blur(4px)'">{{ password }}</span>{{ copy(password) }}{% else %}—{% endif %}</td></tr>
+      <tr><td class="muted">Billing</td><td>{{ 'hourly' if server.billing_mode == 'h' else 'monthly' }} · {{ server.hourly_price|money }} IRR/h · {{ server.monthly_price|money }} IRR/mo · IP change {{ server.ip_hourly_price|money }}</td></tr>
+      <tr><td class="muted">Next charge</td><td>{{ server.next_charge_at|dt }}</td></tr>
+      <tr><td class="muted">Billed so far</td><td>{{ revenue|money }} IRR</td></tr>
+      <tr><td class="muted">IP changes</td><td>{{ server.purchase_ip_changes }} during purchase · last {{ server.last_ip_change_at|dt }}</td></tr>
+      <tr><td class="muted">Created / delivered</td><td>{{ server.created_at|dt }} / {{ server.delivered_at|dt }}</td></tr>
+      {% if server.failure_reason %}<tr><td class="muted">Note</td><td>{{ server.failure_reason }}</td></tr>{% endif %}
+    </table>
+    {% if server.check_summary %}
+    <details><summary>Iran connectivity check: {{ server.check_summary.split('\n')[0] }}</summary><pre class="mono">{{ server.check_summary }}</pre></details>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Actions</h2>
+    <div class="toolbar">
+      {% for a in ['reboot','shutdown','poweron','poweroff'] %}
+      <form class="inline" method="post" action="/servers/{{ server.id }}/action" data-confirm="{{ a }} {{ server.name }}?">{{ csrf_input(csrf) }}<input type="hidden" name="action" value="{{ a }}"><button>{{ a }}</button></form>
+      {% endfor %}
+      {% if server.status == 'awaiting_confirm' %}
+      <form class="inline" method="post" action="/servers/{{ server.id }}/action">{{ csrf_input(csrf) }}<input type="hidden" name="action" value="deliver"><button>Mark delivered</button></form>
+      {% endif %}
+    </div>
+    {% if server.locked %}
+    <form method="post" action="/servers/{{ server.id }}/action" class="toolbar" data-confirm="Unlock {{ server.name }}?">{{ csrf_input(csrf) }}<input type="hidden" name="action" value="unlock"><button class="primary">Unlock server</button></form>
+    {% else %}
+    <form method="post" action="/servers/{{ server.id }}/action" class="toolbar" data-confirm="Lock {{ server.name }}? The user will be notified.">{{ csrf_input(csrf) }}<input type="hidden" name="action" value="lock"><input type="text" name="reason" placeholder="Lock reason"><button class="danger">Lock (abuse)</button></form>
+    {% endif %}
+    {% if server.status not in ('deleted','deleting','failed','transferred') %}
+    <form method="post" action="/servers/{{ server.id }}/action" data-confirm="Permanently DELETE {{ server.name }}? This cannot be undone.">{{ csrf_input(csrf) }}<input type="hidden" name="action" value="delete"><button class="danger">Delete server</button></form>
+    {% endif %}
+  </div>
+</div>
+
+{% if reports %}
+<h2>Abuse reports</h2>
+{% for r in reports %}
+<details><summary>#{{ r.id }} · {{ r.created_at|dt }} · {{ r.source }} · {{ r.status }} — {{ r.subject }}</summary><pre class="mono" style="white-space:pre-wrap">{{ r.body or '' }}</pre></details>
+{% endfor %}
+{% endif %}
+
+<h2>Jobs</h2>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Kind</th><th>Status</th><th>Attempts</th><th>Created</th><th>Error</th></tr>
+{% for j in jobs %}
+<tr><td>{{ j.id }}</td><td>{{ j.kind }} <span class="muted">{{ j.payload }}</span></td><td>{{ status(j.status) }}</td><td>{{ j.attempts }}/{{ j.max_attempts }}</td><td>{{ j.created_at|dt }}</td><td class="mono" style="max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ j.last_error or '' }}">{{ j.last_error or '' }}</td></tr>
+{% else %}<tr><td colspan="6" class="muted">None.</td></tr>{% endfor %}
+</table></div>
+
+<h2>Billing events</h2>
+<div class="table-wrap"><table>
+<tr><th>Period</th><th>Type</th><th class="num">Hours</th><th class="num">Charged (IRR)</th><th class="num">Provider cost</th></tr>
+{% for e in events %}
+<tr><td>{{ e.period_start|dt }} → {{ e.period_end|dt }}</td><td>{{ e.resource_type }}</td><td class="num">{{ e.hours }}</td><td class="num">{{ e.amount|money }}</td><td class="num">{{ '%.4f'|format(e.provider_cost) }} {{ e.currency }}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">None.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

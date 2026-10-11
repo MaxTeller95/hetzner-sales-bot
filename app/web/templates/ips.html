@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status, copy %}
+{% block title %}Reserve IPs{% endblock %}
+{% block content %}
+<h1>Reserve IPs</h1>
+<div class="table-wrap"><table>
+<tr><th>Address</th><th>User</th><th>Location</th><th>Status</th><th class="num">IRR / h</th><th>Next charge</th><th>Created</th></tr>
+{% for ip in ips %}
+<tr><td class="mono">{{ ip.address or '—' }}{{ copy(ip.address) }}</td><td><a class="link" href="/users/{{ ip.user.id }}">{{ ip.user.display }}</a></td>
+<td>{{ ip.location.code }} {{ ip.datacenter or '' }}</td><td>{{ status(ip.status) }}</td><td class="num">{{ ip.hourly_price|money }}</td>
+<td>{{ ip.next_charge_at|dt }}</td><td>{{ ip.created_at|dt }}</td></tr>
+{% else %}<tr><td colspan="7" class="muted">No reserve IPs.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

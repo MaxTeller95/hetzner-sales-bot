@@ -1,0 +1,8 @@
+.env
+*.db
+__pycache__/
+.pytest_cache/
+.venv/
+backups/
+Caddyfile
+docker-compose.override.yml

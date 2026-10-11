@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_input %}
+{% block title %}Providers{% endblock %}
+{% block content %}
+<h1>Providers</h1>
+<p class="muted">Each provider row is one API account. "Kind" picks the implementation registered in <span class="mono">app/providers/registry.py</span>.
+Sync imports locations, plans, prices and OS images (prices only change when you sync).</p>
+<div class="table-wrap"><table>
+<tr><th>Code</th><th>Kind</th><th>Last sync</th><th>Settings</th><th></th></tr>
+{% for p in providers %}
+<tr>
+  <td class="mono">{{ p.code }}</td><td>{{ p.kind }}</td><td>{{ p.last_synced_at|dt }}</td>
+  <td><form class="inline" method="post" action="/providers/{{ p.id }}">{{ csrf_input(csrf) }}
+    <input type="text" name="name" value="{{ p.name }}" style="width:140px" title="Name shown to users">
+    <input type="password" name="api_token" placeholder="{{ 'token set — enter to replace' if p.api_token_enc else 'API token' }}" style="width:220px" autocomplete="off">
+    <label><input type="checkbox" name="is_active" value="1" {{ 'checked' if p.is_active }}> on</label>
+    <input type="number" name="sort_order" value="{{ p.sort_order }}" style="width:58px"><button>Save</button></form></td>
+  <td><form method="post" action="/providers/{{ p.id }}/sync">{{ csrf_input(csrf) }}<button class="primary">Sync catalog</button></form></td>
+</tr>
+{% else %}<tr><td colspan="5" class="muted">No providers yet.</td></tr>{% endfor %}
+</table></div>
+
+<h2>Add provider</h2>
+<form class="card" method="post" action="/providers" style="display:grid;gap:8px;max-width:520px">{{ csrf_input(csrf) }}
+  <input type="text" name="code" placeholder="Unique code, e.g. hetzner-2" required pattern="[a-z0-9\-]+">
+  <select name="kind">{% for k in kinds %}<option value="{{ k }}">{{ k }}</option>{% endfor %}</select>
+  <input type="text" name="name" placeholder="Name shown to users, e.g. Hetzner" required>
+  <input type="password" name="api_token" placeholder="API token" autocomplete="off">
+  <button class="primary">Add provider</button>
+</form>
+{% endblock %}

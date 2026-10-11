@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status, power, copy, csrf_input %}
+{% block title %}{{ user.display }}{% endblock %}
+{% block content %}
+<h1>{{ user.display }} <span class="mono muted" style="font-size:13px">{{ user.telegram_id }}{{ copy(user.telegram_id) }}</span>
+{% if user.is_banned %}<span class="badge err">banned</span>{% endif %}</h1>
+
+<div class="grid">
+  <div class="card"><div class="label">Balance</div><div class="value" style="{{ 'color:var(--err)' if user.wallet.balance < 0 }}">{{ user.wallet.balance|money }} IRR</div>
+  <div class="sub">burn {{ burn|money }} IRR/h{% if burn %} · ≈ {{ (user.wallet.balance // burn) if user.wallet.balance > 0 else 0 }} h left{% endif %}</div></div>
+  <div class="card"><div class="label">Joined</div><div class="value" style="font-size:15px">{{ user.created_at|dt }}</div><div class="sub">ToS accepted: {{ user.tos_accepted_at|dt }}</div></div>
+</div>
+
+<div class="two" style="margin-top:14px">
+  <div class="card">
+    <h2 style="margin-top:0">Wallet adjustment (force top-up / deduct)</h2>
+    <form method="post" action="/users/{{ user.id }}/adjust" style="display:grid;gap:8px" data-confirm="Apply this wallet adjustment?">
+      {{ csrf_input(csrf) }}
+      <input type="text" name="amount" placeholder="Amount in IRR, e.g. 5000000 or -200000" required>
+      <input type="text" name="note" placeholder="Note shown in the user's history">
+      <label><input type="checkbox" name="notify" value="1" checked> Notify user in Telegram</label>
+      <button class="primary" type="submit">Apply</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">Send message</h2>
+    <form method="post" action="/users/{{ user.id }}/message" style="display:grid;gap:8px">
+      {{ csrf_input(csrf) }}
+      <textarea name="text" placeholder="Message (HTML allowed)" style="min-height:70px" required></textarea>
+      <button type="submit">Send</button>
+    </form>
+    <form method="post" action="/users/{{ user.id }}/ban" style="margin-top:10px" data-confirm="{{ 'Unban' if user.is_banned else 'Ban' }} this user?">
+      {{ csrf_input(csrf) }}<button class="{{ '' if user.is_banned else 'danger' }}" type="submit">{{ 'Unban user' if user.is_banned else 'Ban user' }}</button>
+    </form>
+  </div>
+</div>
+
+<details><summary>Admin note</summary>
+<form method="post" action="/users/{{ user.id }}/note">{{ csrf_input(csrf) }}<textarea name="note">{{ user.admin_note or '' }}</textarea><button type="submit">Save note</button></form>
+</details>
+
+<h2>Servers</h2>
+<div class="table-wrap"><table>
+<tr><th>Server</th><th>Plan</th><th>IP</th><th>Status</th><th>Billing</th><th>Created</th></tr>
+{% for s in servers %}
+<tr><td><a class="link" href="/servers/{{ s.id }}">{{ s.name }}</a></td><td>{{ s.plan.name }} · {{ s.location.code }}</td>
+<td class="mono">{{ s.ipv4 or '—' }}{{ copy(s.ipv4) }}</td><td>{{ status(s.status, s.locked) }} {{ power(s) }}</td>
+<td>{{ (s.hourly_price if s.billing_mode == 'h' else s.monthly_price)|money }} / {{ 'h' if s.billing_mode == 'h' else 'mo' }}</td><td>{{ s.created_at|dt }}</td></tr>
+{% else %}<tr><td colspan="6" class="muted">No servers.</td></tr>{% endfor %}
+</table></div>
+
+<h2>Reserve IPs</h2>
+<div class="table-wrap"><table>
+<tr><th>Address</th><th>Location</th><th>Status</th><th class="num">IRR / h</th><th>Created</th></tr>
+{% for ip in ips %}
+<tr><td class="mono">{{ ip.address or '—' }}{{ copy(ip.address) }}</td><td>{{ ip.location.code }} {{ ip.datacenter or '' }}</td><td>{{ status(ip.status) }}</td><td class="num">{{ ip.hourly_price|money }}</td><td>{{ ip.created_at|dt }}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">None.</td></tr>{% endfor %}
+</table></div>
+
+<h2>Top-up requests</h2>
+<div class="table-wrap"><table>
+<tr><th>#</th><th class="num">Amount</th><th>Status</th><th>Created</th><th>Reviewed</th></tr>
+{% for r in reqs %}
+<tr><td>{{ r.id }}</td><td class="num">{{ r.amount|money }}</td><td>{{ status(r.status) }}</td><td>{{ r.created_at|dt }}</td><td>{{ r.reviewed_at|dt }} {{ r.reviewed_by or '' }}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">None.</td></tr>{% endfor %}
+</table></div>
+
+<h2>Transactions (latest 100)</h2>
+<div class="table-wrap"><table>
+<tr><th>When</th><th>Kind</th><th>Description</th><th class="num">Amount</th><th class="num">Balance after</th></tr>
+{% for t in txs %}
+<tr><td>{{ t.created_at|dt }}</td><td><span class="badge">{{ t.kind }}</span></td><td dir="auto">{{ t.description }}</td>
+<td class="num" style="color:{{ 'var(--ok)' if t.amount > 0 else 'var(--err)' }}">{{ t.amount|money }}</td><td class="num">{{ t.balance_after|money }}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">None.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}
